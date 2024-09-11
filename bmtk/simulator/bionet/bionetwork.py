@@ -172,33 +172,65 @@ class BioNetwork(SimNetwork):
         self._edge_adaptors['sonata'] = BioEdgeAdaptor
 
     def build_nodes(self):
-        for node_pop in self.node_populations:
-            self._remote_node_cache[node_pop.name] = {}
-            node_ids_map = {}
-            if node_pop.internal_nodes_only:
-                for node in node_pop[MPI_rank::MPI_size]:
-                    cell = self._build_cell(bionode=node, population_name=node_pop.name)
-                    node_ids_map[node.node_id] = cell
-                    self._rank_node_gids[cell.gid] = cell
-
-            elif node_pop.mixed_nodes:
-                # node population contains both internal and virtual (external) nodes and the virtual nodes must be
-                # filtered out
-                self._virtual_nodes[node_pop.name] = {}
-                for node in node_pop[MPI_rank::MPI_size]:
-                    if node.model_type == 'virtual':
-                        continue
-                    else:
+        # Check if there are specific cells to be built on each rank
+        if self.node_ranks:
+            specific_cells = self.node_ranks.get(str(MPI_rank), [])
+            for node_pop in self.node_populations:
+                self._remote_node_cache[node_pop.name] = {}
+                node_ids_map = {}
+                if node_pop.internal_nodes_only:
+                    for _, node in enumerate(node_pop[::1]):
+                        if specific_cells and node.node_id not in specific_cells:
+                            continue
                         cell = self._build_cell(bionode=node, population_name=node_pop.name)
                         node_ids_map[node.node_id] = cell
-
-
                         self._rank_node_gids[cell.gid] = cell
 
-            elif node_pop.virtual_nodes_only:
-                self._virtual_nodes[node_pop.name] = {}
+                elif node_pop.mixed_nodes:
+                    # node population contains both internal and virtual (external) nodes and the virtual nodes must be
+                    # filtered out
 
-            self._rank_node_ids[node_pop.name] = node_ids_map
+                    self._virtual_nodes[node_pop.name] = {}
+                    for _, node in enumerate(node_pop[::1]):
+                        if node.model_type == 'virtual':
+                            continue
+                        if specific_cells and node.node_id not in specific_cells:
+                            continue
+                        cell = self._build_cell(bionode=node, population_name=node_pop.name)
+                        node_ids_map[node.node_id] = cell
+                        self._rank_node_gids[cell.gid] = cell
+
+                elif node_pop.virtual_nodes_only:
+                    self._virtual_nodes[node_pop.name] = {}
+
+                self._rank_node_ids[node_pop.name] = node_ids_map
+        else:
+            for node_pop in self.node_populations:
+                self._remote_node_cache[node_pop.name] = {}
+                node_ids_map = {}
+                if node_pop.internal_nodes_only:
+                    for node in node_pop[MPI_rank::MPI_size]:
+                        import pdb;pdb.set_trace()
+                        cell = self._build_cell(bionode=node, population_name=node_pop.name)
+                        node_ids_map[node.node_id] = cell
+                        self._rank_node_gids[cell.gid] = cell
+
+                elif node_pop.mixed_nodes:
+                    # node population contains both internal and virtual (external) nodes and the virtual nodes must be
+                    # filtered out
+
+                    self._virtual_nodes[node_pop.name] = {}
+                    for node in node_pop[MPI_rank::MPI_size]:
+                        if node.model_type == 'virtual':
+                            continue
+                        cell = self._build_cell(bionode=node, population_name=node_pop.name)
+                        node_ids_map[node.node_id] = cell
+                        self._rank_node_gids[cell.gid] = cell
+
+                elif node_pop.virtual_nodes_only:
+                    self._virtual_nodes[node_pop.name] = {}
+
+                self._rank_node_ids[node_pop.name] = node_ids_map
 
         # self.make_morphologies()
         # self.set_seg_props()  # set segment properties by creating Morphologies

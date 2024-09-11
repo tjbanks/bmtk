@@ -26,6 +26,8 @@ class SimNetwork(object):
 
         self._gap_juncs = {}
 
+        self.node_ranks = {}
+
     @property
     def io(self):
         return self._io
@@ -230,6 +232,8 @@ class SimNetwork(object):
         # TODO: These are simulator specific
         network.spike_threshold = config.spike_threshold
         network.dL = config.dL
+
+        network.node_ranks = config.node_ranks
 
         # load components
         for name, value in config.components.items():

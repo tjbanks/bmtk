@@ -203,6 +203,7 @@ class SonataConfig(dict):
 
         self.gid_mappings = self.get('gid_mapping_file', None)  # TODO: Remove
         self.node_sets = self.get('node_sets', {})
+        self.node_ranks = self.networks.get('node_ranks', {})
 
 
 def copy_config(conf):
